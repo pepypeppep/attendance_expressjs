@@ -12,11 +12,15 @@ module.exports = {
       name: {
         type: Sequelize.STRING,
       },
-      latitude: {
-        type: Sequelize.STRING,
-      },
-      logitude: {
-        type: Sequelize.STRING,
+      // latitude: {
+      //   type: Sequelize.STRING,
+      // },
+      // logitude: {
+      //   type: Sequelize.STRING,
+      // },
+      coordinate: {
+        type: Sequelize.GEOMETRY("POINT", 4326),
+        allowNull: true,
       },
       radius: {
         type: Sequelize.INTEGER,

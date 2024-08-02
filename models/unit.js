@@ -18,8 +18,9 @@ module.exports = (sequelize, DataTypes) => {
   Unit.init(
     {
       name: DataTypes.STRING,
-      latitude: DataTypes.STRING,
-      logitude: DataTypes.STRING,
+      // latitude: DataTypes.STRING,
+      // logitude: DataTypes.STRING,
+      coordinate: DataTypes.GEOMETRY("POINT", 4326),
       radius: DataTypes.INTEGER,
     },
     {

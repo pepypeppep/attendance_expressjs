@@ -26,6 +26,25 @@ const validatePresence = [
   check("source").isLength({ min: 1 }).withMessage("Source is required"),
 ];
 
+function getDistanceFromLatLonInKm(unitLat, unitLng, lat, lng) {
+  var R = 6371; // Radius of the earth in km
+  var dLat = deg2rad(lat - unitLat); // deg2rad below
+  var dLon = deg2rad(lng - unitLng);
+  var a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(deg2rad(unitLat)) *
+      Math.cos(deg2rad(lat)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  var d = R * c; // Distance in km
+  return d;
+}
+
+function deg2rad(deg) {
+  return deg * (Math.PI / 180);
+}
+
 // router.get("/", presenceController.index);
 // router.get("/:id", presenceController.show);
 // router.post("/checkin", validatePresence, presenceController.checkin);
@@ -224,6 +243,53 @@ router.post(
               });
             }
           }
+
+          const employee = await db.Employee.findOne({
+            where: { id: employeeId },
+            include: [
+              {
+                model: db.Unit,
+                as: "Unit",
+              },
+            ],
+          });
+          const radius = employee.Unit.radius / 1000;
+
+          // if (
+          //   getDistanceFromLatLonInKm(
+          //     employee.Unit.coordinate.coordinates[0],
+          //     employee.Unit.coordinate.coordinates[1],
+          //     lat,
+          //     lng
+          //   ) < radius
+          // ) {
+          //   //point is inside the circle
+          //   res.json({
+          //     status: "inside",
+          //     coordinate: employee.Unit.coordinate.coordinates,
+          //   });
+          // } else {
+          //   //point is outside the circle
+          //   res.json({
+          //     status: "outside",
+          //     coordinate: employee.Unit.coordinate.coordinates,
+          //   });
+          // }
+
+          if (
+            getDistanceFromLatLonInKm(
+              employee.Unit.coordinate.coordinates[0],
+              employee.Unit.coordinate.coordinates[1],
+              lat,
+              lng
+            ) > radius
+          ) {
+            //point is outside the circle
+            return res.status(400).json({
+              message: "Anda diluar radius!",
+            });
+          }
+
           coordinates = {
             type: "Point",
             coordinates: [lat, lng], // GeoJSON expects [longitude, latitude]
@@ -335,7 +401,7 @@ router.post("/checkout", upload.single("images"), async (req, res) => {
         }
         coordinates = {
           type: "Point",
-          coordinates: [lat, lng], // GeoJSON expects [longitude, latitude]
+          coordinates: [-7.8864132312554664, 110.32789652012532], // GeoJSON expects [longitude, latitude]
         };
       } else {
         console.error("Invalid coordinates provided");
