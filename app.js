@@ -4,6 +4,7 @@ const db = require("./models");
 
 const userRoutes = require("./routes/userRoutes");
 const employeeRoutes = require("./routes/employeeRoutes");
+const presenceRoutes = require("./routes/presenceRoutes");
 const cors = require("cors");
 
 const app = express();
@@ -15,6 +16,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use("/users", userRoutes);
 app.use("/employees", employeeRoutes);
+app.use("/presence", presenceRoutes);
 
 // Middleware untuk melayani file statis dari direktori 'uploads'
 // app.use("/uploads", express.static(path.join(__dirname, "uploads")));
