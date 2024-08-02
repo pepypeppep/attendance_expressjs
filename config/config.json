@@ -1,0 +1,23 @@
+{
+  "development": {
+    "username": "zasieun",
+    "password": "diketik",
+    "database": "attendance",
+    "host": "127.0.0.1",
+    "dialect": "postgres"
+  },
+  "test": {
+    "username": "zasieun",
+    "password": "diketik",
+    "database": "attendance",
+    "host": "127.0.0.1",
+    "dialect": "postgres"
+  },
+  "production": {
+    "username": "zasieun",
+    "password": "diketik",
+    "database": "attendance",
+    "host": "127.0.0.1",
+    "dialect": "postgres"
+  }
+}
