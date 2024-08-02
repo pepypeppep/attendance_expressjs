@@ -11,22 +11,120 @@ const { where, Op } = require("sequelize");
 
 exports.index = async (req, res) => {
   try {
-    const presences = await db.Presence.findAll({
-      include: [
-        {
-          model: db.Employee,
-          as: "Employee",
-        },
-        {
-          model: db.PresenceType,
-          as: "PresenceType",
-        },
-      ],
+    // const file = req.file;
+    // if (!file) {
+    //   return res.status(400).json({
+    //     message: "File not found!",
+    //   });
+    // }
+    const schedule = await db.Schedules.findOne({
+      where: { day: moment().tz("Asia/Jakarta").locale("id").format("dddd") },
     });
-    // const presences = await db.Presence.findAll();
-    res.json(presences);
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      if (req.file && req.file.path) {
+        await deleteFile(req.file.path);
+      }
+      return res.status(422).json({ errors: errors.array() });
+    }
+    const { employeeId } = req.body;
+    // const { employeeId, presenceTypeId } = req.body;
+    // const checkInTime = req.currentTime().format(); // Waktu GMT +7
+    // const checkInTime = Date.now(); // Waktu GMT +7
+    // "2024-07-30T12:17:04+07:00"
+    const checkInTime = moment().tz("Asia/Jakarta").format();
+    const nowDate = moment()
+      .tz("Asia/Jakarta")
+      .locale("id")
+      .format("YYYY-MM-D");
+    const tolerant = moment(nowDate + "T" + schedule.clockIn + "+07:00")
+      .add(-30, "minutes")
+      .format();
+
+    if (checkInTime < tolerant) {
+      return res.status(400).json({
+        message: "Belum waktunya presensi!",
+      });
+    }
+
+    var presenceTypeId;
+    // 1 tepat waktu
+    // 2 terlambat
+    if (checkInTime < schedule.clockIn) {
+      presenceTypeId = 1;
+    } else if (checkInTime > schedule.clockIn) {
+      presenceTypeId = 2;
+    }
+
+    let coordinates = {};
+    if (req.body.coordinates) {
+      let lat, lng;
+      [lat, lng] = req.body.coordinates.split(",").map(Number);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        // -7.8867345,110.3274732 android
+        // -7.886703014373779,110.32807922363281 FAKE GPS
+        if (req.body.source.toLowerCase() == "android") {
+          if (
+            lat.toString().split(".")[1].length > 7 ||
+            lng.toString().split(".")[1].length > 7
+          ) {
+            return res.status(400).json({
+              message: "Fake GPS Terdeteksi!",
+            });
+          }
+        }
+        coordinates = {
+          type: "Point",
+          coordinates: [lat, lng], // GeoJSON expects [longitude, latitude]
+        };
+      } else {
+        console.error("Invalid coordinates provided");
+      }
+    }
+
+    const presence = await db.Presence.findOne({
+      where: {
+        employeeId,
+        checkIn: {
+          [db.Sequelize.Op.gte]: moment()
+            .tz("Asia/Jakarta")
+            .locale("id")
+            .startOf("day"),
+          [db.Sequelize.Op.lt]: moment()
+            .tz("Asia/Jakarta")
+            .locale("id")
+            .endOf("day"),
+        },
+      },
+      order: [["checkIn", "ASC"]],
+    });
+
+    // if(presence) {
+    //   return res.status(202).json({
+    //     message: "Anda telah melakukan presensi hari ini!",
+    //   });
+    // }
+
+    const newPresence = await db.Presence.create({
+      employeeId,
+      presenceTypeId,
+      checkIn: checkInTime,
+      checkInImages: "file",
+      // checkInImages: req.file.path,
+      checkInCoordinates: coordinates,
+    });
+    res.json(newPresence);
   } catch (error) {
-    res.status(500).json({ error: "Internal Server Error" });
+    // Hapus file yang diupload jika ada error
+    if (req.file && req.file.path) {
+      await deleteFile(req.file.path);
+    }
+
+    // Mengembalikan response error
+    res.status(500).json({
+      error: "An error occurred during check-in",
+      details: error.message,
+    });
   }
 };
 
@@ -41,6 +139,7 @@ exports.checkin = async (req, res) => {
     const schedule = await db.Schedule.findOne({
       where: { day: moment().tz("Asia/Jakarta").locale("id").format("dddd") },
     });
+    res.json(req.body);
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       if (req.file && req.file.path) {

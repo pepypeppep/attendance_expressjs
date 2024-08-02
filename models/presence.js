@@ -27,8 +27,8 @@ module.exports = (sequelize, DataTypes) => {
       checkOut: DataTypes.STRING,
       checkInImage: DataTypes.STRING,
       checkOutImage: DataTypes.STRING,
-      checkInCoordinates: DataTypes.STRING,
-      checkOutCoordinates: DataTypes.STRING,
+      checkInCoordinates: DataTypes.GEOMETRY("POINT", 4326),
+      checkOutCoordinates: DataTypes.GEOMETRY("POINT", 4326),
     },
     {
       sequelize,
